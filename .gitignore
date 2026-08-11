@@ -1,6 +1,8 @@
 # Created by https://www.toptal.com/developers/gitignore/api/linux,python,django,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=linux,python,django,visualstudiocode
 
+model_structure.drawio.svg
+
 ### Django ###
 *.log
 *.pot
