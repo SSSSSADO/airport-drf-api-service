@@ -77,6 +77,6 @@ class TicketViewSet(ModelViewSet):
     serializer_class = TicketSerializer
 
 
-class ViewSet(ModelViewSet):
+class BaggageViewSet(ModelViewSet):
     queryset = Baggage.objects.all()
     serializer_class = BaggageSerializer

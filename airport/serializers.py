@@ -59,7 +59,7 @@ class AirplaneSerializer(serializers.ModelSerializer):
 # CREW
 class CrewSerializer(serializers.ModelSerializer):
     class Meta:
-        moodel = Crew
+        model = Crew
         fields = ("id", "first_name", "last_name", "role", "experience")
 
 

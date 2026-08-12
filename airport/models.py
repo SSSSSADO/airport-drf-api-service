@@ -1,11 +1,20 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models.constraints import UniqueConstraint
+
+
+def capitalize_str(words: str) -> str:
+    return " ".join([word.capitalize() for word in words.split()])
 
 
 class Country(models.Model):
     name = models.CharField(max_length=64, unique=True)
-    code = models.CharField(max_length=2, unique=True)  # country ISO code
+    code = models.CharField(
+        max_length=2,
+        unique=True,
+        help_text="Enter the two-letter ISO country code"
+    )
 
     class Meta:
         verbose_name_plural = "countries"
@@ -16,6 +25,7 @@ class Country(models.Model):
 
     def save(self, *args, **kwargs):
         self.code = self.code.upper()
+        self.name = capitalize_str(self.name)
         super().save(*args, **kwargs)
 
 
@@ -33,13 +43,17 @@ class City(models.Model):
         return f"{self.name}"
 
     def save(self, *args, **kwargs):
-        self.name = self.name.capitalize()
+        self.name = capitalize_str(self.name)
         super().save(*args, **kwargs)
 
 
 class Airport(models.Model):
     name = models.CharField(max_length=255, unique=True)
-    timezone = models.CharField(max_length=5)  # country timezone ex: "+4"
+    timezone = models.CharField(
+        max_length=5,
+        default="+0",
+        help_text="Enter the country's time zone (min: -12, max: +14)"
+    )
     city = models.ForeignKey(
         "City", on_delete=models.CASCADE, related_name="airports"
     )
@@ -53,8 +67,14 @@ class Airport(models.Model):
 
 
 class Route(models.Model):
-    distance = models.PositiveIntegerField()  # km
-    duration = models.PositiveIntegerField()  # minutes
+    distance = models.PositiveIntegerField(
+        help_text="Enter the distance in kilometers",
+        validators=[MinValueValidator(2), MaxValueValidator(20_000)]
+    )
+    duration = models.PositiveIntegerField(
+        help_text="Enter the duration in minutes",
+        validators=[MinValueValidator(5), MaxValueValidator(1_200)]
+    )
     source = models.ForeignKey(
         "Airport", on_delete=models.CASCADE, related_name="sources"
     )
@@ -124,7 +144,10 @@ class Crew(models.Model):
 
     first_name = models.CharField(max_length=64)
     last_name = models.CharField(max_length=64)
-    experience = models.PositiveIntegerField()    # years
+    experience = models.PositiveIntegerField(
+        help_text="Enter work experience in years. (1-50)",
+        validators=[MinValueValidator(1), MaxValueValidator(50)]
+    )
     role = models.CharField(
         max_length=64, choices=ROLE_CHOICES, default="FLIGHT_ATTENDANT"
     )
@@ -135,14 +158,14 @@ class Crew(models.Model):
 
     class Meta:
         verbose_name_plural = "crews"
-        ordering = ["role"]
+        ordering = ["first_name", "last_name"]
 
     def __str__(self):
-        return f"{self.full_name} - {self.role} / {self.experience} years"
+        return f"{self.full_name} - {self.role} {self.experience} years"
 
     def save(self, *args, **kwargs):
-        self.first_name = self.first_name.capitalize()
-        self.last_name = self.last_name.capitalize()
+        self.first_name = capitalize_str(self.first_name)
+        self.last_name = capitalize_str(self.last_name)
         super().save(*args, **kwargs)
 
 
@@ -155,9 +178,7 @@ class Flight(models.Model):
     airplane = models.ForeignKey(
         "Airplane", on_delete=models.CASCADE, related_name="flights"
     )
-    crew = models.ManyToManyField(
-        "Crew", related_name="flights"
-    )
+    crew = models.ManyToManyField("Crew", related_name="flights")
 
     class Meta:
         verbose_name_plural = "flights"
@@ -177,12 +198,12 @@ class Order(models.Model):
     total_price = models.DecimalField(max_digits=7, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
-        max_length=10, choices=STATUS_CHOICES, default="PANDING"
+        max_length=10, choices=STATUS_CHOICES, default="PENDING"
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="orders"
+        related_name="orders",
     )
 
     class Meta:
@@ -191,14 +212,14 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.pk} - {self.status} - {self.user}"
-    
+
 
 class Ticket(models.Model):
     CLASS_CHOICES = [
         ("ECONOMY", "Economy"),
         ("PREMIUM_ECONOMY", "Premium Economy"),
         ("BUSINESS", "Business"),
-        ("FIRST", "First")
+        ("FIRST", "First"),
     ]
 
     row_number = models.PositiveIntegerField()
@@ -212,7 +233,9 @@ class Ticket(models.Model):
         "Flight", on_delete=models.CASCADE, related_name="tickets"
     )
     passenger = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tickets"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="tickets",
     )
     order = models.ForeignKey(
         "Order", on_delete=models.CASCADE, related_name="tickets"
@@ -224,7 +247,7 @@ class Ticket(models.Model):
         constraints = [
             UniqueConstraint(
                 fields=["flight", "seat_number", "row_number"],
-                name="unique_flight_seat"
+                name="unique_flight_seat",
             )
         ]
 
@@ -233,16 +256,16 @@ class Ticket(models.Model):
 
 
 class Baggage(models.Model):
-    length = models.PositiveIntegerField()    # cm
-    height = models.PositiveIntegerField()    # cm
-    width = models.PositiveIntegerField()    # cm
-    weight = models.DecimalField(max_digits=5, decimal_places=2)   # kg
+    length = models.PositiveIntegerField()  # cm
+    height = models.PositiveIntegerField()  # cm
+    width = models.PositiveIntegerField()  # cm
+    weight = models.DecimalField(max_digits=5, decimal_places=2)  # kg
     ticket = models.ForeignKey(
         "Ticket", on_delete=models.CASCADE, related_name="baggage"
     )
 
     @property
-    def volume(self) -> float:
+    def volume(self) -> int:
         return self.height * self.width * self.length
 
     def __str__(self):
