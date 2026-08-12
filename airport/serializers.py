@@ -15,7 +15,7 @@ from airport.models import (
 
 
 # COUNTRY
-class CountrySerializers(serializers.ModelSerializer):
+class CountrySerializer(serializers.ModelSerializer):
     class Meta:
         model = Country
         fields = ("id", "name", "code")
@@ -36,7 +36,7 @@ class AirportSerializer(serializers.ModelSerializer):
 
 
 # ROUTE
-class RouteSerializers(serializers.ModelSerializer):
+class RouteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Route
         fields = ("id", "source", "destination", "distance", "duration")
