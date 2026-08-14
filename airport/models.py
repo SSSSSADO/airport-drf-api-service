@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -85,6 +87,10 @@ class Route(models.Model):
     @property
     def duration_in_hours(self) -> float:
         return round(self.duration / 60, 1)
+
+    @property
+    def full_route(self) -> str:
+        return f"{self.source} --> {self.destination}"
 
     class Meta:
         verbose_name_plural = "routes"
@@ -195,7 +201,12 @@ class Order(models.Model):
         ("CANCELLED", "Cancelled"),
     ]
 
-    total_price = models.DecimalField(max_digits=7, decimal_places=2)
+    total_price = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        editable=False,
+        default=Decimal("0.00")
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
         max_length=10, choices=STATUS_CHOICES, default="PENDING"
@@ -224,7 +235,12 @@ class Ticket(models.Model):
 
     row_number = models.PositiveIntegerField()
     seat_number = models.PositiveIntegerField()
-    price = models.DecimalField(max_digits=7, decimal_places=2)
+    price = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        editable=False,
+        default=Decimal("0.00")
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     seat_class = models.CharField(
         max_length=30, choices=CLASS_CHOICES, default="ECONOMY"
