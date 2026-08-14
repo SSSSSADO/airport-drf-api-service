@@ -219,8 +219,8 @@ class FlightListSerializer(serializers.ModelSerializer):
 
 
 class FlightRetrieveSerializer(FlightSerializer):
-    route = RouteListSerializer()
-    crew = CrewListSerializer(many=True)
+    route = RouteListSerializer(read_only=True)
+    crew = CrewListSerializer(many=True, read_only=True)
     airplane = serializers.SlugRelatedField(
         read_only=True, slug_field="model"
     )
@@ -234,7 +234,7 @@ class BaggageSerializer(serializers.ModelSerializer):
 
 
 class BaggageListSerializer(serializers.ModelSerializer):
-    owner = serializers.CharField(source="ticket.order.user")
+    owner = serializers.CharField(source="ticket.passenger", read_only=True)
 
     class Meta:
         model = Baggage
@@ -242,7 +242,7 @@ class BaggageListSerializer(serializers.ModelSerializer):
 
 
 class BaggageRetrieveSerializer(BaggageSerializer):
-    owner = serializers.CharField(source="ticket.order.user")
+    owner = serializers.CharField(source="ticket.passenger", read_only=True)
 
     class Meta(BaggageSerializer.Meta):
         fields = BaggageSerializer.Meta.fields + ("volume", "owner")
@@ -300,6 +300,8 @@ class TicketListSerializer(serializers.ModelSerializer):
 
 
 class TicketRetrieveSerializer(TicketListSerializer):
+    baggage = BaggageSerializer(many=True, read_only=True)
+
     class Meta(TicketListSerializer.Meta):
         fields = TicketListSerializer.Meta.fields + (
             "seat_class", "row_number", "seat_number", "baggage"
@@ -357,4 +359,4 @@ class OrderListSerializer(serializers.ModelSerializer):
 
 
 class OrderRetrieveSerializer(OrderSerializer):
-    tickets = TicketListSerializer(many=True)
+    tickets = TicketListSerializer(many=True, read_only=True)
