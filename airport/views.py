@@ -1,5 +1,9 @@
-from django.db.models import Prefetch
+from django.db.models import F, Count, Prefetch
+
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.filters import OrderingFilter, SearchFilter
+
+from django_filters.rest_framework import DjangoFilterBackend
 
 from airport.models import (
     Country,
@@ -47,12 +51,15 @@ from airport.serializers import (
     TicketRetrieveSerializer,
     BaggageSerializer,
     BaggageListSerializer,
-    BaggageRetrieveSerializer
+    BaggageRetrieveSerializer,
 )
 
 
 class CountryViewSet(ModelViewSet):
     queryset = Country.objects.all()
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["id", "name", "code"]
+    ordering_fields = ["name", "code"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -70,6 +77,10 @@ class CountryViewSet(ModelViewSet):
 
 class CityViewSet(ModelViewSet):
     queryset = City.objects.all()
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ["country"]
+    search_fields = ["id", "name", "country"]
+    ordering_fields = ["name", "country"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -89,6 +100,9 @@ class CityViewSet(ModelViewSet):
 
 class AirportViewSet(ModelViewSet):
     queryset = Airport.objects.all()
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["id", "name", "city__name"]
+    ordering_fields = ["name", "city"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -106,6 +120,10 @@ class AirportViewSet(ModelViewSet):
 
 class RouteViewSet(ModelViewSet):
     queryset = Route.objects.all()
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ["source", "destination"]
+    search_fields = ["id", "source__name", "destination__name"]
+    ordering_fields = ["distance", "duration"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -123,6 +141,9 @@ class RouteViewSet(ModelViewSet):
 
 class AirplaneTypeViewSet(ModelViewSet):
     queryset = AirplaneType.objects.all()
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["id", "name"]
+    ordering_fields = ["name", "airplane_count"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -134,12 +155,18 @@ class AirplaneTypeViewSet(ModelViewSet):
     def get_queryset(self):
         qs = self.queryset
         if self.action in ("list", "retrieve"):
-            return qs.prefetch_related("airplanes")
+            return qs.prefetch_related("airplanes").annotate(
+                airplane_count=Count("airplanes")
+            )
         return qs
 
 
 class AirplaneViewSet(ModelViewSet):
     queryset = Airplane.objects.all()
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ["airplane_type"]
+    search_fields = ["id", "model"]
+    ordering_fields = ["airplane_type", "model", "capacity_ordering"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -148,9 +175,21 @@ class AirplaneViewSet(ModelViewSet):
             return AirplaneRetrieveSerializer
         return AirplaneSerializer
 
+    def get_queryset(self):
+        qs = self.queryset
+        if self.action in ("list", "retrieve"):
+            return qs.select_related("airplane_type").annotate(
+                capacity_ordering=F("rows") * F("seats_per_row")
+            )
+        return qs
+
 
 class CrewViewSet(ModelViewSet):
     queryset = Crew.objects.all()
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ["role"]
+    search_fields = ["id", "first_name", "last_name"]
+    ordering_fields = ["first_name", "experience"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -166,9 +205,8 @@ class CrewViewSet(ModelViewSet):
                 Prefetch(
                     "flights",
                     queryset=Flight.objects.select_related(
-                        "route__source",
-                        "route__destination"
-                    )
+                        "route__source", "route__destination"
+                    ),
                 )
             )
         return qs
@@ -176,6 +214,10 @@ class CrewViewSet(ModelViewSet):
 
 class FlightViewSet(ModelViewSet):
     queryset = Flight.objects.all()
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ["route", "airplane"]
+    search_fields = ["id", "route__source__name", "route__destination__name"]
+    ordering_fields = ["departure_time", "arrival_time"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -188,9 +230,7 @@ class FlightViewSet(ModelViewSet):
         qs = self.queryset
         if self.action == "list":
             return qs.select_related(
-                "route",
-                "route__source",
-                "route__destination"
+                "route", "route__source", "route__destination"
             )
         elif self.action == "retrieve":
             return qs.select_related(
@@ -204,6 +244,9 @@ class FlightViewSet(ModelViewSet):
 
 class BaggageViewSet(ModelViewSet):
     queryset = Baggage.objects.all()
+    filter_backends = [SearchFilter, OrderingFilter]
+    # search_fields = ["id", "ticket__passanger__first_name"] # Need override User model
+    ordering_fields = ["weight"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -221,6 +264,14 @@ class BaggageViewSet(ModelViewSet):
 
 class TicketViewSet(ModelViewSet):
     queryset = Ticket.objects.all()
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ["order__status"]
+    search_fields = [
+        "id",
+        "flight__route__source__name",
+        "flight__route__destination__name"
+    ]
+    ordering_fields = ["created_at"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -233,19 +284,21 @@ class TicketViewSet(ModelViewSet):
         qs = self.queryset
         if self.action == "list":
             return qs.select_related(
-                "flight__route__source",
-                "flight__route__destination"
+                "flight__route__source", "flight__route__destination"
             )
         elif self.action == "retrieve":
             return qs.select_related(
-                "flight__route__source",
-                "flight__route__destination"
+                "flight__route__source", "flight__route__destination"
             ).prefetch_related("baggage")
         return qs
 
 
 class OrderViewSet(ModelViewSet):
     queryset = Order.objects.all()
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ["status"]
+    search_fields = ["id", "created_at"]
+    ordering_fields = ["created_at"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -261,9 +314,8 @@ class OrderViewSet(ModelViewSet):
                 Prefetch(
                     "tickets",
                     queryset=Ticket.objects.select_related(
-                        "flight__route__source",
-                        "flight__route__destination"
-                    ).prefetch_related("baggage")
+                        "flight__route__source", "flight__route__destination"
+                    ).prefetch_related("baggage"),
                 )
             )
         return qs

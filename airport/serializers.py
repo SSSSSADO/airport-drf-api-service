@@ -163,12 +163,20 @@ class AirplaneSerializer(serializers.ModelSerializer):
 
 
 class AirplaneListSerializer(serializers.ModelSerializer):
+    airplane_type = serializers.SlugRelatedField(
+        read_only=True, slug_field="name"
+    )
+
     class Meta:
         model = Airplane
         fields = ("id", "airplane_type", "model", "capacity")
 
 
 class AirplaneRetrieveSerializer(AirplaneSerializer):
+    airplane_type = serializers.SlugRelatedField(
+        read_only=True, slug_field="name"
+    )
+
     class Meta(AirplaneSerializer.Meta):
         fields = AirplaneSerializer.Meta.fields + ("capacity",)
 
