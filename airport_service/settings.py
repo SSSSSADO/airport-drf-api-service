@@ -47,8 +47,6 @@ INSTALLED_APPS = [
     "user",
 ]
 
-AUTH_USER_MODEL = "user.User"
-
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "debug_toolbar.middleware.DebugToolbarMiddleware",
@@ -130,6 +128,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+
+AUTH_USER_MODEL = "user.User"
 
 REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": [
