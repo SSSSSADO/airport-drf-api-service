@@ -2,9 +2,13 @@ from django.db.models import F, Count, Prefetch
 
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from django_filters.rest_framework import DjangoFilterBackend
 
+from airport.permissions import (
+    IsStaffOrReadOnly, IsOwnerOrStaff, IsBaggageOwnerOrStaff
+    )
 from airport.models import (
     Country,
     City,
@@ -57,6 +61,8 @@ from airport.serializers import (
 
 class CountryViewSet(ModelViewSet):
     queryset = Country.objects.all()
+    permission_classes = [IsStaffOrReadOnly]
+
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["id", "name", "code"]
     ordering_fields = ["name", "code"]
@@ -77,9 +83,11 @@ class CountryViewSet(ModelViewSet):
 
 class CityViewSet(ModelViewSet):
     queryset = City.objects.all()
+    permission_classes = [IsStaffOrReadOnly]
+
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["country"]
-    search_fields = ["id", "name", "country"]
+    search_fields = ["id", "name", "country__name"]
     ordering_fields = ["name", "country"]
 
     def get_serializer_class(self):
@@ -100,9 +108,11 @@ class CityViewSet(ModelViewSet):
 
 class AirportViewSet(ModelViewSet):
     queryset = Airport.objects.all()
+    permission_classes = [IsStaffOrReadOnly]
+
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["id", "name", "city__name"]
-    ordering_fields = ["name", "city"]
+    ordering_fields = ["name", "city__name"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -120,6 +130,8 @@ class AirportViewSet(ModelViewSet):
 
 class RouteViewSet(ModelViewSet):
     queryset = Route.objects.all()
+    permission_classes = [IsStaffOrReadOnly]
+
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["source", "destination"]
     search_fields = ["id", "source__name", "destination__name"]
@@ -141,6 +153,8 @@ class RouteViewSet(ModelViewSet):
 
 class AirplaneTypeViewSet(ModelViewSet):
     queryset = AirplaneType.objects.all()
+    permission_classes = [IsStaffOrReadOnly]
+
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["id", "name"]
     ordering_fields = ["name", "airplane_count"]
@@ -163,6 +177,8 @@ class AirplaneTypeViewSet(ModelViewSet):
 
 class AirplaneViewSet(ModelViewSet):
     queryset = Airplane.objects.all()
+    permission_classes = [IsStaffOrReadOnly]
+
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["airplane_type"]
     search_fields = ["id", "model"]
@@ -186,6 +202,8 @@ class AirplaneViewSet(ModelViewSet):
 
 class CrewViewSet(ModelViewSet):
     queryset = Crew.objects.all()
+    permission_classes = [IsStaffOrReadOnly]
+
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["role"]
     search_fields = ["id", "first_name", "last_name"]
@@ -214,6 +232,8 @@ class CrewViewSet(ModelViewSet):
 
 class FlightViewSet(ModelViewSet):
     queryset = Flight.objects.all()
+    permission_classes = [IsStaffOrReadOnly]
+
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["route", "airplane"]
     search_fields = ["id", "route__source__name", "route__destination__name"]
@@ -244,6 +264,8 @@ class FlightViewSet(ModelViewSet):
 
 class BaggageViewSet(ModelViewSet):
     queryset = Baggage.objects.all()
+    permission_classes = [IsBaggageOwnerOrStaff]
+
     filter_backends = [SearchFilter, OrderingFilter]
     # search_fields = ["id", "ticket__passanger__first_name"] # Need override User model
     ordering_fields = ["weight"]
@@ -257,6 +279,10 @@ class BaggageViewSet(ModelViewSet):
 
     def get_queryset(self):
         qs = self.queryset
+
+        if not self.request.user.is_staff:
+            qs = qs.filter(ticket__passenger=self.request.user)
+
         if self.action in ("list", "retrieve"):
             return qs.select_related("ticket__passenger")
         return qs
@@ -273,6 +299,13 @@ class TicketViewSet(ModelViewSet):
     ]
     ordering_fields = ["created_at"]
 
+    def get_permissions(self):
+        if self.action == "retrieve":
+            permission_classes = [IsAuthenticated, IsOwnerOrStaff]
+        else:
+            permission_classes = [IsAdminUser]
+        return [permission() for permission in permission_classes]
+
     def get_serializer_class(self):
         if self.action == "list":
             return TicketListSerializer
@@ -283,18 +316,22 @@ class TicketViewSet(ModelViewSet):
     def get_queryset(self):
         qs = self.queryset
         if self.action == "list":
-            return qs.select_related(
-                "flight__route__source", "flight__route__destination"
+            qs = qs.select_related(
+                "flight__route__source",
+                "flight__route__destination",
             )
         elif self.action == "retrieve":
-            return qs.select_related(
-                "flight__route__source", "flight__route__destination"
+            qs = qs.select_related(
+                "flight__route__source",
+                "flight__route__destination",
             ).prefetch_related("baggage")
         return qs
 
 
 class OrderViewSet(ModelViewSet):
     queryset = Order.objects.all()
+    permission_classes = [IsOwnerOrStaff]
+
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["status"]
     search_fields = ["id", "created_at"]
@@ -309,6 +346,10 @@ class OrderViewSet(ModelViewSet):
 
     def get_queryset(self):
         qs = self.queryset
+
+        if not self.request.user.is_staff:
+            qs = qs.filter(user=self.request.user)
+
         if self.action == "retrieve":
             return qs.prefetch_related(
                 Prefetch(

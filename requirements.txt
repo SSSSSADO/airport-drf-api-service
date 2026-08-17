@@ -3,4 +3,6 @@ Django==6.0.8
 django-debug-toolbar==7.1.0
 django-filter==26.1
 djangorestframework==3.18.0
+djangorestframework_simplejwt==5.5.1
+PyJWT==2.13.0
 sqlparse==0.5.5

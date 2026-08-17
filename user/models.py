@@ -43,7 +43,7 @@ class UserManager(BaseUserManager):
 
         return self._create_user(
             email=email, password=password, **extra_fields
-            )
+        )
 
 
 class User(AbstractUser):
@@ -53,7 +53,7 @@ class User(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
-    objects = UserManager() # type: ignore
+    objects = UserManager()  # type: ignore
 
     @property
     def full_name(self):
