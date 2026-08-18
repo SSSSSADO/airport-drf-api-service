@@ -7,17 +7,18 @@ The project provides airport and flight management, ticket booking, baggage hand
 ---
 ## 📖 Contents
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Authentication](#authentication)
-- [API Documentation](#api-documentation)
-- [Ticket Pricing](#ticket-pricing)
-- [Order Creation](#order-creation)
-- [Docker Setup](#docker-setup)
-- [Demo Credentials](#demo-credentials)
-- [Environment Variables](#environment-variables)
-- [Project Structure](#project-structure)
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Architecture](#-architecture)
+- [Authentication](#-authentication)
+- [API Documentation](#-api-documentation)
+- [Ticket Pricing](#-ticket-pricing)
+- [Order Creation](#-order-creation)
+- [Docker Setup](#-docker-setup)
+- [Demo Credentials](#-demo-credentials)
+- [Environment Variables](#-environment-variables)
+- [Project Structure](#-project-structure)
+- [Author](#author)
 
 ---
 
