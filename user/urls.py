@@ -9,7 +9,7 @@ app_name = "user"
 
 urlpatterns = [
     path("register/", RegisterView.as_view()),
-    path("token/", TokenObtainPairView.as_view()),
-    path("token/refresh/", TokenRefreshView.as_view()),
+    path("login/", TokenObtainPairView.as_view()),
+    path("token-refresh/", TokenRefreshView.as_view()),
     path("me/", MeView.as_view()),
 ]
