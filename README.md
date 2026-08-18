@@ -5,6 +5,21 @@ REST API for airport, flight and ticket management built with Django REST Framew
 The project provides airport and flight management, ticket booking, baggage handling, JWT authentication, role-based permissions, dynamic ticket pricing and a PostgreSQL-backed Docker environment.
 
 ---
+## 📖 Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Authentication](#authentication)
+- [API Documentation](#api-documentation)
+- [Ticket Pricing](#ticket-pricing)
+- [Order Creation](#order-creation)
+- [Docker Setup](#docker-setup)
+- [Demo Credentials](#demo-credentials)
+- [Environment Variables](#environment-variables)
+- [Project Structure](#project-structure)
+
+---
 
 ## 🚀 Features
 
@@ -92,12 +107,12 @@ Authorization: Bearer <access_token>
 
 ### Current User
 ```http
-GET /api/auth/me/
+GET /api/me/
 ```
 
 ### Registration
 ```http
-POST /api/auth/register/
+POST /api/register/
 ```
 
 ### If access token die - use Refresh Token endpoint:
@@ -112,7 +127,7 @@ POST /api/token-refresh/
 
 Interactive Swagger documentation is available at:
 ```http
-/api/docs/
+GET /api/docs/
 ```
 
 The Swagger UI can be used to explore endpoints, inspect request/response schemas and send API requests directly from the browser.
@@ -130,7 +145,7 @@ Ticket prices are calculated automatically by the API.
 | First | 150.00 | 0.025 |
 
 Final ticket price:
-```http
+```text
 base price + route distance × class distance rate
 
 
@@ -209,7 +224,7 @@ PostgreSQL data is stored in a Docker volume.
 
 ## 🔑 Demo Credentials
 ```http
-/admin/
+GET /admin/
 
 Email: admin@example.com
 Password: SuperPass777
