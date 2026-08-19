@@ -82,7 +82,7 @@ Authentication is implemented using JWT.
 ### Obtain tokens
 
 ```http
-POST /api/login/
+POST /api/auth/login/
 # Demo admin credentials:
 
 {
@@ -108,17 +108,17 @@ Authorization: Bearer <access_token>
 
 ### Current User
 ```http
-GET /api/me/
+GET /api/auth/me/
 ```
 
 ### Registration
 ```http
-POST /api/register/
+POST /api/auth/register/
 ```
 
 ### If access token die - use Refresh Token endpoint:
 ```http
-POST /api/token-refresh/
+POST /api/auth/token-refresh/
 ```
 
 ---
